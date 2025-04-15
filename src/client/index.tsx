@@ -15,6 +15,7 @@ import { names, type ChatMessage, type Message } from "../shared";
 function App() {
   const [name] = useState(names[Math.floor(Math.random() * names.length)]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
   const { room } = useParams();
 
   const socket = usePartySocket({
@@ -82,6 +83,13 @@ function App() {
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
+          
+          const now = Date.now();
+          if (now - lastMessageTime < 3000) {
+            alert('plz wait 3 seconds to send another message');
+            return;
+          }
+
           const content = e.currentTarget.elements.namedItem(
             "content",
           ) as HTMLInputElement;
@@ -92,7 +100,7 @@ function App() {
             role: "user",
           };
           setMessages((messages) => [...messages, chatMessage]);
-          // we could broadcast the message here
+          setLastMessageTime(now);
 
           socket.send(
             JSON.stringify({
@@ -118,7 +126,6 @@ function App() {
     </div>
   );
 }
-
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
