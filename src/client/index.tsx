@@ -16,7 +16,15 @@ function App() {
   const [name] = useState(names[Math.floor(Math.random() * names.length)]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [isOnCooldown, setIsOnCooldown] = useState(false);
   const { room } = useParams();
+
+  const startCooldown = () => {
+    setIsOnCooldown(true);
+    setTimeout(() => {
+      setIsOnCooldown(false);
+    }, 3000);
+  };
 
   const socket = usePartySocket({
     party: "chat",
@@ -84,15 +92,16 @@ function App() {
         onSubmit={(e) => {
           e.preventDefault();
           
-          const now = Date.now();
-          if (now - lastMessageTime < 3000) {
-            alert('plz wait 3 seconds to send another message');
+          if (isOnCooldown) {
             return;
           }
 
           const content = e.currentTarget.elements.namedItem(
             "content",
           ) as HTMLInputElement;
+
+          if (!content.value.trim()) return; // Don't send empty messages
+
           const chatMessage: ChatMessage = {
             id: nanoid(8),
             content: content.value,
@@ -100,7 +109,7 @@ function App() {
             role: "user",
           };
           setMessages((messages) => [...messages, chatMessage]);
-          setLastMessageTime(now);
+          startCooldown();
 
           socket.send(
             JSON.stringify({
@@ -118,9 +127,18 @@ function App() {
           className="ten columns my-input-text"
           placeholder={`Hello ${name}! Type a message...`}
           autoComplete="off"
+          disabled={isOnCooldown}
         />
-        <button type="submit" className="send-message two columns">
-          Send
+        <button 
+          type="submit" 
+          className="send-message two columns"
+          disabled={isOnCooldown}
+          style={{ 
+            opacity: isOnCooldown ? 0.5 : 1,
+            cursor: isOnCooldown ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isOnCooldown ? '3s' : 'Send'}
         </button>
       </form>
     </div>
